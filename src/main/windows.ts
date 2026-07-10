@@ -68,6 +68,7 @@ export function createMainWindow(startHidden = false): BrowserWindow {
     title: 'My2Do',
     icon: ICON_FILE,
     autoHideMenuBar: true,
+    frame: false, // custom titlebar injected by the preload (see main.preload.ts)
     webPreferences: {
       partition: PARTITION,
       preload: preloadPath('main.preload.js'),

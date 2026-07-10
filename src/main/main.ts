@@ -1,4 +1,4 @@
-import { app, ipcMain, Menu, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron';
 import log from 'electron-log';
 import { PROTOCOL, APP_URL } from './config';
 import {
@@ -81,6 +81,15 @@ function onReady(): void {
   // Sign-in from the native splash → browser + poll (no protocol handler needed).
   ipcMain.handle('auth:start', () => startDesktopLogin());
   ipcMain.handle('open:site', () => void shell.openExternal(APP_URL));
+
+  // Custom window controls (the window is frameless; the titlebar is injected).
+  ipcMain.on('window:minimize', (e) => BrowserWindow.fromWebContents(e.sender)?.minimize());
+  ipcMain.on('window:maximize', (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender);
+    if (win) win.isMaximized() ? win.unmaximize() : win.maximize();
+  });
+  // Close routes through the window's own 'close' handler → hides to the tray.
+  ipcMain.on('window:close', (e) => BrowserWindow.fromWebContents(e.sender)?.close());
 
   // Windows/Linux: a deep link on cold start arrives in argv. It takes priority
   // over the auth gate (it IS the sign-in completing).
