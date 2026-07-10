@@ -9,8 +9,14 @@ export const PARTITION = 'persist:my2do';
 /** Custom protocol used for the Google-sign-in-in-browser handoff. */
 export const PROTOCOL = 'my2do';
 
-/** URL that starts Google sign-in in the SYSTEM browser (whole flow, one session). */
-export const AUTH_START_URL = `${APP_URL}/auth/google/redirect?desktop=1`;
+/**
+ * Desktop sign-in runs entirely in the system browser and is picked up by
+ * polling — so it works whether or not the browser is already logged in, and
+ * needs no my2do:// protocol handler. The app opens AUTH_START_URL?state=<rand>
+ * and polls AUTH_POLL_URL?state=<rand> until the login token is ready.
+ */
+export const AUTH_START_URL = `${APP_URL}/desktop/auth/start`;
+export const AUTH_POLL_URL = `${APP_URL}/desktop/auth/poll`;
 
 /** Endpoint the splash screen polls to decide app-vs-sign-in. */
 export const SESSION_PROBE_URL = `${APP_URL}/desktop/session`;
