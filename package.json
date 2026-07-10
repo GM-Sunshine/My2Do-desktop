@@ -3,7 +3,10 @@
   "productName": "My2Do",
   "version": "0.1.0",
   "description": "My2Do desktop app — a native window for my2do.app with notifications, tray, and a global quick-add.",
-  "author": "My2Do",
+  "author": {
+    "name": "My2Do",
+    "email": "hello@my2do.app"
+  },
   "license": "UNLICENSED",
   "main": "dist/main/main.js",
   "scripts": {
