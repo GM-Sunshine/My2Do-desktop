@@ -7,8 +7,10 @@ import { checkForUpdates } from './updater';
 let tray: Tray | null = null;
 
 function trayIcon(): Electron.NativeImage {
+  // dist/icon.png — copied from build/ at build time so it ships inside the app
+  // (build/ is a build resource and is NOT packaged into the running app).
   const img = nativeImage
-    .createFromPath(path.join(__dirname, '..', '..', 'build', 'icon.png'))
+    .createFromPath(path.join(__dirname, '..', 'icon.png'))
     .resize({ width: 18, height: 18 });
   if (process.platform === 'darwin') img.setTemplateImage(true); // auto light/dark on mac
   return img;

@@ -9,6 +9,30 @@ export const PARTITION = 'persist:my2do';
 /** Custom protocol used for the Google-sign-in-in-browser handoff. */
 export const PROTOCOL = 'my2do';
 
+/** URL that starts Google sign-in in the SYSTEM browser (whole flow, one session). */
+export const AUTH_START_URL = `${APP_URL}/auth/google/redirect?desktop=1`;
+
+/** Endpoint the splash screen polls to decide app-vs-sign-in. */
+export const SESSION_PROBE_URL = `${APP_URL}/desktop/session`;
+
+/**
+ * True for the OAuth *start* URL. The whole flow must run in the system browser
+ * (Google blocks Electron webviews), so we never let this navigate in-window —
+ * otherwise the redirect escapes to the browser mid-flow and the session (and
+ * OAuth state) is split across two places and the callback can't hand back.
+ */
+export function isAuthStartUrl(rawUrl: string): boolean {
+  try {
+    const u = new URL(rawUrl);
+    return (
+      (u.hostname === 'my2do.app' || u.hostname === 'www.my2do.app') &&
+      u.pathname === '/auth/google/redirect'
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** Global shortcut that opens the quick-add mini window. */
 export const QUICK_ADD_HOTKEY = 'CommandOrControl+Shift+N';
 

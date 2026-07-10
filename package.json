@@ -1,7 +1,7 @@
 {
   "name": "my2do-desktop",
   "productName": "My2Do",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "My2Do desktop app — a native window for my2do.app with notifications, tray, and a global quick-add.",
   "author": {
     "name": "My2Do",
@@ -10,7 +10,7 @@
   "license": "UNLICENSED",
   "main": "dist/main/main.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "npm run build && electron .",
     "dev": "npm run build && electron . --dev",

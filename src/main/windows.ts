@@ -2,12 +2,47 @@ import { app, BrowserWindow, screen, session, Session } from 'electron';
 import * as path from 'path';
 import { APP_URL, PARTITION, userAgentSuffix } from './config';
 import { attachLinkHandling } from './links';
+import { attachContextMenu } from './contextmenu';
 
 let mainWindow: BrowserWindow | null = null;
 let quickAddWindow: BrowserWindow | null = null;
 
+/** Bundled assets (copied into dist/ by the build's postbuild step). */
+const SPLASH_FILE = path.join(__dirname, '..', 'renderer', 'splash.html');
+const ICON_FILE = path.join(__dirname, '..', 'icon.png');
+
 export function getMainWindow(): BrowserWindow | null {
   return mainWindow;
+}
+
+/** Is this the hosted web app's login page (i.e. we're signed out)? */
+function isLoginUrl(rawUrl: string): boolean {
+  try {
+    const u = new URL(rawUrl);
+    return (u.hostname === 'my2do.app' || u.hostname === 'www.my2do.app') && u.pathname.startsWith('/login');
+  } catch {
+    return false;
+  }
+}
+
+/** Show the native branded splash/sign-in screen in the main window. */
+export function showSplash(state: 'connecting' | 'signed-out' = 'connecting'): void {
+  if (!mainWindow) return;
+  void mainWindow.loadFile(SPLASH_FILE);
+  if (state === 'signed-out') {
+    mainWindow.webContents.once('did-finish-load', () => sendAuthState('signed-out'));
+  }
+}
+
+/** Load the hosted app (the signed-in experience). */
+export function loadDashboard(): void {
+  mainWindow?.show();
+  void mainWindow?.loadURL(`${APP_URL}/dashboard`);
+}
+
+/** Tell the splash renderer whether we're connecting or signed out. */
+export function sendAuthState(state: 'connecting' | 'signed-out'): void {
+  mainWindow?.webContents.send('auth:state', state);
 }
 
 /** The on-disk session that holds the login + remember-me cookies. */
@@ -31,6 +66,7 @@ export function createMainWindow(startHidden = false): BrowserWindow {
     show: false,
     backgroundColor: '#f7f3ea',
     title: 'My2Do',
+    icon: ICON_FILE,
     webPreferences: {
       partition: PARTITION,
       preload: preloadPath('main.preload.js'),
@@ -44,7 +80,16 @@ export function createMainWindow(startHidden = false): BrowserWindow {
   });
 
   attachLinkHandling(mainWindow.webContents);
-  void mainWindow.loadURL(`${APP_URL}/dashboard`);
+  attachContextMenu(mainWindow.webContents);
+
+  // Start on the native splash; main.ts runs the auth gate once it has loaded.
+  void mainWindow.loadFile(SPLASH_FILE);
+
+  // If the hosted app ever bounces us to /login (session expired, sign-out),
+  // show the native sign-in screen instead of the web login page.
+  mainWindow.webContents.on('did-navigate', (_e, url) => {
+    if (isLoginUrl(url)) showSplash('signed-out');
+  });
 
   mainWindow.once('ready-to-show', () => {
     if (!startHidden) mainWindow?.show();
@@ -130,11 +175,12 @@ export function createQuickAddWindow(): BrowserWindow {
   quickAddWindow.webContents.on('before-input-event', (_e, input) => {
     if (input.type === 'keyDown' && input.key === 'Escape') quickAddWindow?.hide();
   });
-  // Not logged in → quick-add redirects to /login; bounce to the main window instead.
+  // Not logged in → quick-add redirects to /login; bounce to the native sign-in.
   quickAddWindow.webContents.on('did-navigate', (_e, url) => {
     if (url.includes('/login')) {
       quickAddWindow?.hide();
-      showMainWindow('/login');
+      showMainWindow();
+      showSplash('signed-out');
     }
   });
   quickAddWindow.on('closed', () => {
