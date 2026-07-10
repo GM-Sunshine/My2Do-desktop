@@ -1,0 +1,29 @@
+{
+  "name": "my2do-desktop",
+  "productName": "My2Do",
+  "version": "0.1.0",
+  "description": "My2Do desktop app — a native window for my2do.app with notifications, tray, and a global quick-add.",
+  "author": "My2Do",
+  "license": "UNLICENSED",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "npm run build && electron .",
+    "dev": "npm run build && electron . --dev",
+    "dist:linux": "npm run build && electron-builder --linux AppImage deb",
+    "dist:all": "npm run build && electron-builder -mwl",
+    "release": "npm run build && electron-builder --publish always"
+  },
+  "dependencies": {
+    "electron-log": "^5.2.0",
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.6.3"
+  }
+}
