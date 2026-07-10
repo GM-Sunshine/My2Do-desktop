@@ -1,6 +1,6 @@
-import { app, ipcMain, shell } from 'electron';
+import { app, ipcMain, Menu, shell } from 'electron';
 import log from 'electron-log';
-import { PROTOCOL, APP_URL, AUTH_START_URL } from './config';
+import { PROTOCOL, APP_URL } from './config';
 import {
   createMainWindow,
   showMainWindow,
@@ -11,6 +11,7 @@ import {
   sendAuthState,
 } from './windows';
 import { isAuthenticated } from './session';
+import { startDesktopLogin } from './auth';
 import { createTray } from './tray';
 import { registerShortcuts, unregisterShortcuts } from './shortcuts';
 import { initUpdater } from './updater';
@@ -66,14 +67,19 @@ function handleDeepLink(url: string): void {
 
 function onReady(): void {
   registerProtocol();
+
+  // No application menu bar on Windows/Linux (keep the standard menu on macOS,
+  // where it drives Cmd+C/V/Q and the app menu).
+  if (process.platform !== 'darwin') Menu.setApplicationMenu(null);
+
   createMainWindow(startHidden);
   createTray();
   registerShortcuts();
   startNotificationPolling();
   initUpdater();
 
-  // Sign-in from the native splash → open the whole Google flow in the browser.
-  ipcMain.handle('auth:start', () => void shell.openExternal(AUTH_START_URL));
+  // Sign-in from the native splash → browser + poll (no protocol handler needed).
+  ipcMain.handle('auth:start', () => startDesktopLogin());
   ipcMain.handle('open:site', () => void shell.openExternal(APP_URL));
 
   // Windows/Linux: a deep link on cold start arrives in argv. It takes priority

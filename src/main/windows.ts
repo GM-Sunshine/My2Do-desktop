@@ -67,6 +67,7 @@ export function createMainWindow(startHidden = false): BrowserWindow {
     backgroundColor: '#f7f3ea',
     title: 'My2Do',
     icon: ICON_FILE,
+    autoHideMenuBar: true,
     webPreferences: {
       partition: PARTITION,
       preload: preloadPath('main.preload.js'),
