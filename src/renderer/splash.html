@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; script-src 'unsafe-inline'">
+  <title>My2Do</title>
+  <style>
+    :root {
+      --paper: #f7f3ea;
+      --paper-2: #efe7d6;
+      --ink: #211e1a;
+      --ink-soft: #6f6a60;
+      --line: #e4dbc8;
+      --brand: #5b53e8;
+      --brand-700: #4b41c9;
+      --amber: #ffe08a;
+      --surface: #fffdf8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      overflow: hidden;
+      -webkit-user-select: none;
+      user-select: none;
+      display: grid;
+      place-items: center;
+    }
+
+    /* Live ambient aurora — slow drifting brand/amber light. */
+    .aurora { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+    .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.5; }
+    .blob.b1 { width: 46vmax; height: 46vmax; left: -14vmax; top: -16vmax;
+      background: radial-gradient(circle, rgba(91,83,232,0.55), transparent 70%); animation: drift1 16s ease-in-out infinite; }
+    .blob.b2 { width: 40vmax; height: 40vmax; right: -14vmax; bottom: -16vmax;
+      background: radial-gradient(circle, rgba(255,224,138,0.6), transparent 70%); animation: drift2 20s ease-in-out infinite; }
+    .blob.b3 { width: 30vmax; height: 30vmax; right: 6vmax; top: -10vmax;
+      background: radial-gradient(circle, rgba(109,100,240,0.4), transparent 70%); animation: drift1 24s ease-in-out infinite reverse; }
+    @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(6vmax,4vmax) scale(1.12); } }
+    @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-5vmax,-3vmax) scale(1.1); } }
+
+    .stage {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center; padding: 0 28px;
+      animation: rise 0.7s cubic-bezier(0.2,0.8,0.2,1) both;
+    }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+    .mark { width: 96px; height: 96px; border-radius: 26px; box-shadow: 0 20px 44px -18px rgba(36,26,99,0.5);
+      animation: breathe 4.5s ease-in-out infinite; }
+    @keyframes breathe { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    .mark .tick { stroke-dasharray: 150; stroke-dashoffset: 150; animation: draw 0.9s 0.35s cubic-bezier(0.6,0,0.2,1) forwards; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+
+    .wordmark { margin-top: 22px; font-family: Georgia, "Times New Roman", serif; font-weight: 600;
+      font-size: 34px; letter-spacing: -0.02em; }
+    .domain { margin-top: 6px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: lowercase;
+      color: var(--brand); }
+
+    /* connecting dots */
+    .dots { margin-top: 30px; display: flex; gap: 8px; height: 24px; align-items: center; }
+    .dots span { width: 9px; height: 9px; border-radius: 50%; background: var(--brand); opacity: 0.4;
+      animation: bounce 1.2s ease-in-out infinite; }
+    .dots span:nth-child(2) { animation-delay: 0.15s; }
+    .dots span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes bounce { 0%,100% { opacity: 0.35; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-6px); } }
+
+    /* sign-in */
+    .signin { margin-top: 26px; display: none; flex-direction: column; align-items: center; max-width: 340px; }
+    .signin.show { display: flex; animation: rise 0.5s cubic-bezier(0.2,0.8,0.2,1) both; }
+    .tagline { color: var(--ink-soft); font-size: 15px; line-height: 1.5; }
+    .gbtn {
+      margin-top: 20px; display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+      width: 300px; max-width: 80vw; padding: 13px 20px; border-radius: 14px; cursor: pointer;
+      border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+      font-size: 15px; font-weight: 600; box-shadow: 0 2px 6px rgba(33,30,26,0.06);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .gbtn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -10px rgba(33,30,26,0.28); border-color: rgba(33,30,26,0.22); }
+    .gbtn:active { transform: translateY(0); }
+    .gbtn svg { width: 20px; height: 20px; }
+    .hint { margin-top: 16px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; }
+    .hint b { color: var(--ink); font-weight: 600; }
+    .link { color: var(--brand); cursor: pointer; text-decoration: none; }
+    .link:hover { text-decoration: underline; }
+
+    .foot { position: fixed; bottom: 20px; left: 0; right: 0; z-index: 1; text-align: center;
+      font-size: 11.5px; letter-spacing: 0.04em; color: var(--ink-soft); opacity: 0.75; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .blob, .mark, .mark .tick, .dots span, .stage, .signin { animation: none !important; }
+      .mark .tick { stroke-dashoffset: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="aurora"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+
+  <main class="stage">
+    <svg class="mark" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="My2Do">
+      <defs>
+        <linearGradient id="bg" x1="140" y1="90" x2="900" y2="960" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#6A61EE"/><stop offset="0.55" stop-color="#5B53E8"/><stop offset="1" stop-color="#4B41C9"/>
+        </linearGradient>
+        <linearGradient id="sheen" x1="512" y1="70" x2="512" y2="620" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+        </linearGradient>
+        <radialGradient id="glow" cx="0.26" cy="0.2" r="0.8">
+          <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="paper" x1="512" y1="150" x2="512" y2="880" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#FDFBF6"/><stop offset="1" stop-color="#F4EEE1"/>
+        </linearGradient>
+        <linearGradient id="clip" x1="430" y1="120" x2="594" y2="210" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#8B82F5"/><stop offset="1" stop-color="#6C63EE"/>
+        </linearGradient>
+        <linearGradient id="check" x1="286" y1="300" x2="392" y2="406" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#6D64F0"/><stop offset="1" stop-color="#5B53E8"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#bg)"/>
+      <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#glow)"/>
+      <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#sheen)"/>
+      <g transform="rotate(-5 512 512)">
+        <rect x="212" y="176" width="600" height="672" rx="52" fill="url(#paper)"/>
+        <rect x="212" y="176" width="600" height="672" rx="52" fill="none" stroke="#EAE1CE" stroke-width="2"/>
+        <rect x="286" y="300" width="104" height="104" rx="30" fill="url(#check)"/>
+        <path class="tick" d="M316 353 L350 386 L410 316" fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="430" y="332" width="300" height="40" rx="20" fill="#D8CFBC"/>
+        <rect x="286" y="470" width="104" height="104" rx="30" fill="#FBF7EE" stroke="#BDB4F4" stroke-width="9"/>
+        <rect x="430" y="502" width="322" height="40" rx="20" fill="#E4DBC8"/>
+        <rect x="286" y="640" width="104" height="104" rx="30" fill="#FBF7EE" stroke="#BDB4F4" stroke-width="9"/>
+        <rect x="430" y="672" width="232" height="40" rx="20" fill="#E4DBC8"/>
+        <rect x="424" y="140" width="176" height="72" rx="36" fill="url(#clip)"/>
+        <rect x="452" y="150" width="120" height="18" rx="9" fill="#ffffff" fill-opacity="0.35"/>
+      </g>
+    </svg>
+
+    <div class="wordmark">My2Do</div>
+    <div class="domain">my2do.app</div>
+
+    <!-- connecting -->
+    <div class="dots" id="dots"><span></span><span></span><span></span></div>
+
+    <!-- signed-out -->
+    <div class="signin" id="signin">
+      <p class="tagline">A calmer way to get things done — your tasks, synced across web, desktop and terminal.</p>
+      <button class="gbtn" id="google" type="button">
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
+          <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
+          <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+          <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
+        </svg>
+        Continue with Google
+      </button>
+      <p class="hint" id="hint">Sign in opens in your browser, then hands you back here.<br>
+        No account? <span class="link" id="site">Get started at my2do.app</span></p>
+    </div>
+  </main>
+
+  <div class="foot">my2do.app · a GM Sunshine project</div>
+
+  <script>
+    (function () {
+      var dots = document.getElementById('dots');
+      var signin = document.getElementById('signin');
+      var hint = document.getElementById('hint');
+
+      function showSignedOut() {
+        dots.style.display = 'none';
+        signin.classList.add('show');
+      }
+
+      var api = window.my2doDesktop;
+      if (api && typeof api.onAuthState === 'function') {
+        api.onAuthState(function (state) {
+          if (state === 'signed-out') showSignedOut();
+        });
+      } else {
+        // No bridge (opened outside the app) — show the button anyway.
+        showSignedOut();
+      }
+
+      document.getElementById('google').addEventListener('click', function () {
+        if (api && api.startLogin) api.startLogin();
+        hint.innerHTML = 'Waiting for you to finish in the browser…';
+      });
+      document.getElementById('site').addEventListener('click', function () {
+        if (api && api.openSite) api.openSite();
+      });
+    })();
+  </script>
+</body>
+</html>

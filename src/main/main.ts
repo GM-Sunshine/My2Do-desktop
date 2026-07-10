@@ -1,12 +1,16 @@
-import { app, ipcMain } from 'electron';
+import { app, ipcMain, shell } from 'electron';
 import log from 'electron-log';
-import { PROTOCOL } from './config';
+import { PROTOCOL, APP_URL, AUTH_START_URL } from './config';
 import {
   createMainWindow,
   showMainWindow,
   loadInMainWindow,
   hideQuickAddWindow,
+  getMainWindow,
+  loadDashboard,
+  sendAuthState,
 } from './windows';
+import { isAuthenticated } from './session';
 import { createTray } from './tray';
 import { registerShortcuts, unregisterShortcuts } from './shortcuts';
 import { initUpdater } from './updater';
@@ -68,9 +72,18 @@ function onReady(): void {
   startNotificationPolling();
   initUpdater();
 
-  // Windows/Linux: a deep link on cold start arrives in argv.
+  // Sign-in from the native splash → open the whole Google flow in the browser.
+  ipcMain.handle('auth:start', () => void shell.openExternal(AUTH_START_URL));
+  ipcMain.handle('open:site', () => void shell.openExternal(APP_URL));
+
+  // Windows/Linux: a deep link on cold start arrives in argv. It takes priority
+  // over the auth gate (it IS the sign-in completing).
   const initial = process.argv.find((a) => a.startsWith(`${PROTOCOL}://`));
-  if (initial) handleDeepLink(initial);
+  if (initial) {
+    handleDeepLink(initial);
+  } else {
+    runAuthGate();
+  }
 
   ipcMain.on('quickadd:saved', () => {
     hideQuickAddWindow();
@@ -79,6 +92,21 @@ function onReady(): void {
 
   // macOS dock click.
   app.on('activate', () => showMainWindow());
+}
+
+/** Once the splash has rendered, probe the session: show the app or sign-in. */
+function runAuthGate(): void {
+  const win = getMainWindow();
+  if (!win) return;
+  win.webContents.once('did-finish-load', async () => {
+    try {
+      if (await isAuthenticated()) loadDashboard();
+      else sendAuthState('signed-out');
+    } catch (e) {
+      log.warn('[auth-gate]', e);
+      sendAuthState('signed-out');
+    }
+  });
 }
 
 // Live in the tray: don't quit when the window is closed. Only explicit Quit exits.
