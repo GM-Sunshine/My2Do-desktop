@@ -182,9 +182,22 @@
 
       var api = window.my2doDesktop;
       if (api && typeof api.onAuthState === 'function') {
+        // Push: main tells us when the probe resolves (startup).
         api.onAuthState(function (state) {
           if (state === 'signed-out') showSignedOut();
         });
+        // Pull: ask for the current state right now (robust after logout, where
+        // the state is already known before this splash finished loading).
+        if (typeof api.getAuthState === 'function') {
+          api.getAuthState().then(function (state) {
+            if (state === 'signed-out') showSignedOut();
+          }).catch(function () {});
+        }
+        // Last resort: never stay stuck on the spinner. If we're still on the
+        // splash after 12s (longer than the auth probe), reveal sign-in.
+        setTimeout(function () {
+          if (!signin.classList.contains('show')) showSignedOut();
+        }, 12000);
       } else {
         // No bridge (opened outside the app) — show the button anyway.
         showSignedOut();
