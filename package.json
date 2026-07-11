@@ -1,7 +1,7 @@
 {
   "name": "my2do-desktop",
   "productName": "My2Do",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "My2Do desktop app — a native window for my2do.app with notifications, tray, and a global quick-add.",
   "author": {
     "name": "My2Do",
