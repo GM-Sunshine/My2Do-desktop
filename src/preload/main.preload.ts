@@ -3,7 +3,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 // Bridge for the native splash/sign-in screen. The web app only reads isDesktop.
 contextBridge.exposeInMainWorld('my2doDesktop', {
   isDesktop: true,
-  startLogin: () => ipcRenderer.invoke('auth:start'),
+  // 'google' → straight to Google; omit → full login page (Google + email/password).
+  startLogin: (provider?: string) => ipcRenderer.invoke('auth:start', provider),
   openSite: () => ipcRenderer.invoke('open:site'),
   onAuthState: (cb: (state: string) => void) => {
     ipcRenderer.on('auth:state', (_e, state: string) => cb(state));

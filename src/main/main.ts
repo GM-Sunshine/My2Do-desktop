@@ -79,7 +79,7 @@ function onReady(): void {
   initUpdater();
 
   // Sign-in from the native splash → browser + poll (no protocol handler needed).
-  ipcMain.handle('auth:start', () => startDesktopLogin());
+  ipcMain.handle('auth:start', (_e, provider?: string) => startDesktopLogin(provider));
   ipcMain.handle('open:site', () => void shell.openExternal(APP_URL));
 
   // Custom window controls (the window is frameless; the titlebar is injected).

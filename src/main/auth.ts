@@ -12,9 +12,12 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
  * the consume URL in the app window to establish the real session. Works even
  * if the browser was already logged in, and needs no protocol handler.
  */
-export function startDesktopLogin(): void {
+export function startDesktopLogin(provider?: string): void {
   const state = randomBytes(24).toString('hex');
-  void shell.openExternal(`${AUTH_START_URL}?state=${state}`);
+  // provider=google jumps straight to Google; otherwise the browser shows the
+  // full login page (Google + email/password). Either way the app polls for the token.
+  const suffix = provider === 'google' ? '&provider=google' : '';
+  void shell.openExternal(`${AUTH_START_URL}?state=${state}${suffix}`);
   beginPolling(state);
 }
 

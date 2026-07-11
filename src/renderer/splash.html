@@ -82,6 +82,10 @@
     .gbtn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -10px rgba(33,30,26,0.28); border-color: rgba(33,30,26,0.22); }
     .gbtn:active { transform: translateY(0); }
     .gbtn svg { width: 20px; height: 20px; }
+    .ebtn { margin-top: 10px; width: 300px; max-width: 80vw; padding: 11px 20px; border-radius: 14px;
+      cursor: pointer; border: 1px solid transparent; background: transparent; color: var(--ink-soft);
+      font-size: 14px; font-weight: 600; transition: color .15s ease, background .15s ease; }
+    .ebtn:hover { color: var(--ink); background: rgba(120,120,120,.10); }
     .hint { margin-top: 16px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; }
     .hint b { color: var(--ink); font-weight: 600; }
     .link { color: var(--brand); cursor: pointer; text-decoration: none; }
@@ -157,6 +161,7 @@
         </svg>
         Continue with Google
       </button>
+      <button class="ebtn" id="email" type="button">Sign in with email</button>
       <p class="hint" id="hint">Sign in opens in your browser, then hands you back here.<br>
         No account? <span class="link" id="site">Get started at my2do.app</span></p>
     </div>
@@ -186,7 +191,11 @@
       }
 
       document.getElementById('google').addEventListener('click', function () {
-        if (api && api.startLogin) api.startLogin();
+        if (api && api.startLogin) api.startLogin('google');
+        hint.innerHTML = 'Waiting for you to finish in the browser…';
+      });
+      document.getElementById('email').addEventListener('click', function () {
+        if (api && api.startLogin) api.startLogin('email');
         hint.innerHTML = 'Waiting for you to finish in the browser…';
       });
       document.getElementById('site').addEventListener('click', function () {
