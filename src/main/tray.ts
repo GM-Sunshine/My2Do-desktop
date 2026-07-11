@@ -2,7 +2,7 @@ import { app, Menu, nativeImage, Tray } from 'electron';
 import * as path from 'path';
 import { getMainWindow, showMainWindow, toggleQuickAddWindow } from './windows';
 import { isLaunchAtLogin, setLaunchAtLogin } from './startup';
-import { checkForUpdates } from './updater';
+import { checkForUpdates, openDownloadPage, pendingUpdate } from './updater';
 
 let tray: Tray | null = null;
 
@@ -24,30 +24,44 @@ export function createTray(): void {
   tray.on('click', () => showMainWindow());
 }
 
+/** Rebuild the tray menu — also called by the updater when an update is found. */
+export function refreshTray(): void {
+  rebuildMenu();
+}
+
 function rebuildMenu(): void {
   if (!tray) return;
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: 'Open My2Do', click: () => showMainWindow() },
-      { label: 'Quick add task', accelerator: 'CmdOrCtrl+Shift+N', click: () => toggleQuickAddWindow() },
-      { type: 'separator' },
-      {
-        label: 'Launch at login',
-        type: 'checkbox',
-        checked: isLaunchAtLogin(),
-        click: (item) => setLaunchAtLogin(item.checked),
+
+  const pending = pendingUpdate();
+  const items: Electron.MenuItemConstructorOptions[] = [
+    { label: `My2Do ${app.getVersion()}`, enabled: false },
+  ];
+  if (pending) {
+    items.push({ label: `⬇  Update to ${pending}…`, click: () => openDownloadPage() });
+  }
+  items.push(
+    { type: 'separator' },
+    { label: 'Open My2Do', click: () => showMainWindow() },
+    { label: 'Quick add task', accelerator: 'CmdOrCtrl+Shift+N', click: () => toggleQuickAddWindow() },
+    { type: 'separator' },
+    {
+      label: 'Launch at login',
+      type: 'checkbox',
+      checked: isLaunchAtLogin(),
+      click: (item) => setLaunchAtLogin(item.checked),
+    },
+    { label: 'Check for updates…', click: () => checkForUpdates() },
+    { type: 'separator' },
+    {
+      label: 'Quit My2Do',
+      click: () => {
+        (app as unknown as { isQuitting?: boolean }).isQuitting = true;
+        app.quit();
       },
-      { label: 'Check for updates…', click: () => checkForUpdates() },
-      { type: 'separator' },
-      {
-        label: 'Quit My2Do',
-        click: () => {
-          (app as unknown as { isQuitting?: boolean }).isQuitting = true;
-          app.quit();
-        },
-      },
-    ]),
+    },
   );
+
+  tray.setContextMenu(Menu.buildFromTemplate(items));
 }
 
 /** Reflect the unread count on the dock/launcher badge and tray tooltip. */
