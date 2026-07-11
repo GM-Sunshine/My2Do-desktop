@@ -25,23 +25,35 @@ function isLoginUrl(rawUrl: string): boolean {
   }
 }
 
+/** Last auth state, so the splash can PULL it on load (avoids a push race that
+ *  could otherwise strand the splash on the "connecting" spinner after logout). */
+let splashState: 'connecting' | 'signed-out' = 'connecting';
+
+export function currentSplashState(): 'connecting' | 'signed-out' {
+  return splashState;
+}
+
 /** Show the native branded splash/sign-in screen in the main window. */
 export function showSplash(state: 'connecting' | 'signed-out' = 'connecting'): void {
   if (!mainWindow) return;
+  splashState = state; // set BEFORE load so the splash's pull sees it
   void mainWindow.loadFile(SPLASH_FILE);
   if (state === 'signed-out') {
+    // Push too, in case the splash was already loaded (belt + suspenders).
     mainWindow.webContents.once('did-finish-load', () => sendAuthState('signed-out'));
   }
 }
 
 /** Load the hosted app (the signed-in experience). */
 export function loadDashboard(): void {
+  splashState = 'connecting';
   mainWindow?.show();
   void mainWindow?.loadURL(`${APP_URL}/dashboard`);
 }
 
 /** Tell the splash renderer whether we're connecting or signed out. */
 export function sendAuthState(state: 'connecting' | 'signed-out'): void {
+  splashState = state;
   mainWindow?.webContents.send('auth:state', state);
 }
 

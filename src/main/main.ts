@@ -9,6 +9,7 @@ import {
   getMainWindow,
   loadDashboard,
   sendAuthState,
+  currentSplashState,
 } from './windows';
 import { isAuthenticated } from './session';
 import { startDesktopLogin } from './auth';
@@ -81,6 +82,8 @@ function onReady(): void {
   // Sign-in from the native splash → browser + poll (no protocol handler needed).
   ipcMain.handle('auth:start', (_e, provider?: string) => startDesktopLogin(provider));
   ipcMain.handle('open:site', () => void shell.openExternal(APP_URL));
+  // The splash pulls its state on load (so it can't stick on the connecting spinner).
+  ipcMain.handle('auth:state:get', () => currentSplashState());
 
   // Custom window controls (the window is frameless; the titlebar is injected).
   ipcMain.on('window:minimize', (e) => BrowserWindow.fromWebContents(e.sender)?.minimize());

@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('my2doDesktop', {
   onAuthState: (cb: (state: string) => void) => {
     ipcRenderer.on('auth:state', (_e, state: string) => cb(state));
   },
+  // Splash pulls the current state on load (robust against a missed push).
+  getAuthState: (): Promise<string> => ipcRenderer.invoke('auth:state:get'),
 });
 
 // ---------------------------------------------------------------------------
