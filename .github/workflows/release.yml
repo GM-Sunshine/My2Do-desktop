@@ -34,7 +34,14 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
       - name: Publish the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release edit "${{ github.ref_name }}" --repo "${{ github.repository }}" --draft=false --latest
+        run: |
+          # Release notes = the tag's commit message, minus any tooling trailers
+          # (co-author lines and "<Tool>-Session: <url>" lines).
+          git log -1 --pretty=%B | grep -viE '^Co-Authored-By:|^[A-Za-z]+-Session: https?://' > release-notes.md
+          gh release edit "${{ github.ref_name }}" --repo "${{ github.repository }}" --draft=false --latest --notes-file release-notes.md
