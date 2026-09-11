@@ -35,7 +35,7 @@ nsis:
 linux:
   target: [AppImage, deb]
   category: Utility
-  icon: build/icon.png
+  icon: build/icons          # a full set of standard hicolor sizes (16–512); a lone 1024 isn't a standard size, so desktops fall back to a generic icon
   synopsis: A calmer way to get things done — desktop.
 
 # Auto-update feed (also the download source for the web /download page).
