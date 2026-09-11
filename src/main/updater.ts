@@ -1,13 +1,26 @@
-import { app, dialog, shell } from 'electron';
+import { app, dialog, ipcMain, shell } from 'electron';
 import log from 'electron-log';
 import { autoUpdater } from 'electron-updater';
 import { refreshTray } from './tray';
+import { getMainWindow } from './windows';
 
 const DOWNLOAD_PAGE = 'https://my2do.app/download';
 
 let manualCheck = false;
 let wired = false;
 let pendingVersion: string | null = null; // available, but we can't self-install it
+
+// Update state mirrored to the renderer, which shows the in-app banner (see the
+// main preload). 'downloaded' = ready to restart & install (Win/AppImage);
+// 'manual' = a newer version the user must download (.deb / macOS).
+type UpdateStatus = 'idle' | 'downloading' | 'downloaded' | 'manual';
+interface UpdateState { status: UpdateStatus; version: string | null; percent: number }
+let state: UpdateState = { status: 'idle', version: null, percent: 0 };
+
+function setState(next: Partial<UpdateState>): void {
+  state = { ...state, ...next };
+  getMainWindow()?.webContents.send('update:state', state);
+}
 
 /**
  * Platforms where electron-updater can download AND install in place:
@@ -41,6 +54,14 @@ export function initUpdater(): void {
   autoUpdater.autoInstallOnAppQuit = true;
   wireEvents();
 
+  // Renderer ↔ updater bridge for the in-app banner (main preload injects it).
+  ipcMain.handle('update:get', () => state);
+  ipcMain.on('update:restart', () => {
+    (app as unknown as { isQuitting?: boolean }).isQuitting = true;
+    setImmediate(() => autoUpdater.quitAndInstall());
+  });
+  ipcMain.on('update:download', () => openDownloadPage());
+
   void autoUpdater.checkForUpdates();
   setInterval(() => {
     manualCheck = false;
@@ -55,6 +76,7 @@ function wireEvents(): void {
   autoUpdater.on('update-available', (info) => {
     log.info('[updater] available', info.version);
     if (canAutoInstall()) {
+      setState({ status: 'downloading', version: info.version, percent: 0 });
       if (manualCheck) {
         void dialog.showMessageBox({
           type: 'info', title: 'My2Do',
@@ -65,6 +87,7 @@ function wireEvents(): void {
       void autoUpdater.downloadUpdate();
     } else {
       pendingVersion = info.version; // e.g. a .deb install
+      setState({ status: 'manual', version: info.version });
       refreshTray();
       if (manualCheck) {
         manualCheck = false;
@@ -75,6 +98,7 @@ function wireEvents(): void {
 
   autoUpdater.on('update-not-available', () => {
     pendingVersion = null;
+    setState({ status: 'idle', version: null, percent: 0 });
     refreshTray();
     if (manualCheck) {
       manualCheck = false;
@@ -86,10 +110,14 @@ function wireEvents(): void {
     }
   });
 
-  autoUpdater.on('download-progress', (p) => log.info(`[updater] ${Math.round(p.percent)}%`));
+  autoUpdater.on('download-progress', (p) => {
+    setState({ percent: Math.round(p.percent) });
+    log.info(`[updater] ${Math.round(p.percent)}%`);
+  });
 
   autoUpdater.on('update-downloaded', async (info) => {
     log.info('[updater] downloaded', info.version);
+    setState({ status: 'downloaded', version: info.version, percent: 100 });
     const { response } = await dialog.showMessageBox({
       type: 'info', buttons: ['Restart & install', 'Later'], defaultId: 0, cancelId: 1,
       title: 'Update ready',
